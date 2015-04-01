@@ -5,8 +5,10 @@ Learn more about the current installation
 
 Include it in your paster.ini configuration with:
 
-arche.includes =
-   arche_introspect
+.. code::
 
- You'll find the view in the site menu.
+   arche.includes =
+      arche_introspect
+
+You'll find the view in the site menu.
  
