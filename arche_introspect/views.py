@@ -1,5 +1,7 @@
+import StringIO
+
 from arche import security
-from arche.interfaces import IContextACL
+from arche.interfaces import IContextACL, IWorkflow
 from arche.interfaces import ILocalRoles
 from arche.interfaces import IRoot
 from arche.utils import get_addable_content
@@ -12,7 +14,14 @@ from arche.views.actions import generic_submenu_items
 from arche.views.base import BaseView
 from betahaus.viewcomponent import view_action
 from betahaus.viewcomponent.interfaces import IViewGroup
+from pyramid.httpexceptions import HTTPNotFound
 from pyramid.renderers import render
+from pyramid.response import Response
+
+try:
+    import pygraphviz as pgv
+except ImportError:
+    pgv = None
 
 from arche_introspect import _
 
@@ -76,6 +85,32 @@ def acl_panel(context, request, va, **kw):
         }
     return render('arche_introspect:templates/acl.pt', response, request = request)
 
+def _draw_wf_graph(wf, request):
+    assert pgv is not None
+    trans = request.localizer.translate
+    G=pgv.AGraph(directed = True)
+    for (name, title) in wf.states.items():
+        G.add_node(name, label = trans(title))
+    for transition in wf.transitions.values():
+        G.add_edge(transition.from_state, transition.to_state, label = trans(transition.title))
+    G.layout(prog = 'dot')
+    output = StringIO.StringIO()
+    G.draw(output, format = 'svg')
+    contents = output.getvalue()
+    output.close()
+    return contents
+
+@view_action('sysinfo', 'workflows',
+             title = "Workflows",
+             permission = security.PERM_MANAGE_SYSTEM)
+def workflows_panel(context, request, va, **kw):
+    workflows = [ar.factory for ar in request.registry.registeredAdapters() if ar.provided == IWorkflow]
+    response = {
+        'workflows': workflows,
+        'has_pgv': pgv is not None,
+        }
+    return render('arche_introspect:templates/workflows.pt', response, request = request)
+
 @view_action('sysinfo', 'images',
              title = _(u"Images"),
              permission = security.PERM_MANAGE_SYSTEM)
@@ -93,10 +128,34 @@ def sysinfo_menu(context, request, va, **kw):
     #This will probablt change in arche so keep track of it.
     return generic_submenu_items(context, request, va, **kw)
 
+def wf_graph_response(context, request):
+    if pgv is None:
+        raise HTTPNotFound("pygraphwiz must be installed")
+    wf_name = request.matchdict.get('wf_name', '')
+    wf = None
+    for ar in request.registry.registeredAdapters():
+        if ar.provided == IWorkflow and wf_name == ar.name:
+            wf = ar.factory
+    if wf is None:
+        #raise Exception()
+        raise HTTPNotFound("No workflow registered with the name: %s" % wf_name)
+    return Response(
+            body = _draw_wf_graph(wf, request),
+            headerlist=[
+               ('Content-Type', "image/svg+xml"),
+               # ('Content-Type', "image/png"),
+               # ('Etag', thumb.etag)
+                ]
+            )
+
 def includeme(config):
     config.add_view(SystemInformationView,
                     context = IRoot,
                     name = '__introspection__',
                     renderer = "arche_introspect:templates/introspect.pt",
                     permission = security.PERM_MANAGE_SYSTEM)
-    config.scan(__name__)
+    config.add_route("wf_graph_img", "/_wf_graph_img/{wf_name}")
+    config.add_view(wf_graph_response,
+                    route_name="wf_graph_img",
+                    permission=security.PERM_MANAGE_SYSTEM)
+    config.scan()

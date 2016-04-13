@@ -1,0 +1,48 @@
+<tal:main xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      i18n:domain="arche_introspect">
+  <h1 i18n:translate="">Workflows</h1>
+  <p tal:condition="not has_pgv" class="lead"
+     i18n:translate="">Note: If you install pygraphviz, this will show up as a graph image instead.</p>
+
+  <div class="panel-group">
+    <tal:wfs repeat="wf workflows">
+    <div class="panel panel-default">
+
+      <div class="panel-heading">
+        <h4 class="panel-title">
+          ${wf.title} (${wf.name})
+        </h4>
+      </div>
+
+      <tal:graph condition="has_pgv">
+        <div class="panel-body">
+          <img class="img-responsive" src="${request.route_url('wf_graph_img', wf_name = wf.name)}" />
+        </div>
+      </tal:graph>
+
+      <tal:not_graph condition="not has_pgv">
+      <div class="list-group">
+      <tal:iterate repeat="trans wf.transitions.values()">
+        <div class="list-group-item">
+          <div class="row">
+            <div class="col-xs-4">
+              ${trans.title}
+            </div>
+            <div class="col-xs-8">
+              ${wf.states.get(trans.from_state,trans.from_state)}
+              <span class="glyphicon glyphicon-arrow-right"></span>
+              ${wf.states.get(trans.to_state,trans.to_state)}
+            </div>
+          </div>
+        </div>
+
+          </tal:iterate>
+      </div>
+      </tal:not_graph>
+    </div>
+    </tal:wfs>
+  </div>
+</tal:main>
