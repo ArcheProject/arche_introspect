@@ -1,5 +1,3 @@
-import StringIO
-
 from arche import security
 from arche.interfaces import IContextACL, IWorkflow
 from arche.interfaces import ILocalRoles
@@ -17,7 +15,7 @@ from betahaus.viewcomponent.interfaces import IViewGroup
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.renderers import render
 from pyramid.response import Response
-
+from six import StringIO
 try:
     import pygraphviz as pgv
 except ImportError:
