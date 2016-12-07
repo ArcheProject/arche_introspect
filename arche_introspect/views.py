@@ -92,7 +92,7 @@ def _draw_wf_graph(wf, request):
     for transition in wf.transitions.values():
         G.add_edge(transition.from_state, transition.to_state, label = trans(transition.title))
     G.layout(prog = 'dot')
-    output = StringIO.StringIO()
+    output = StringIO()
     G.draw(output, format = 'svg')
     contents = output.getvalue()
     output.close()
