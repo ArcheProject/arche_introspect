@@ -135,14 +135,11 @@ def wf_graph_response(context, request):
         if ar.provided == IWorkflow and wf_name == ar.name:
             wf = ar.factory
     if wf is None:
-        #raise Exception()
         raise HTTPNotFound("No workflow registered with the name: %s" % wf_name)
     return Response(
             body = _draw_wf_graph(wf, request),
             headerlist=[
                ('Content-Type', "image/svg+xml"),
-               # ('Content-Type', "image/png"),
-               # ('Etag', thumb.etag)
                 ]
             )
 
@@ -156,4 +153,4 @@ def includeme(config):
     config.add_view(wf_graph_response,
                     route_name="wf_graph_img",
                     permission=security.PERM_MANAGE_SYSTEM)
-    config.scan()
+    config.scan(__name__)
